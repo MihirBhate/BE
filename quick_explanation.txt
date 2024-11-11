@@ -1,0 +1,92 @@
+Sure! Let's walk through each line of this code, starting from the imports.
+
+Imports and Setup
+python
+Copy code
+import random
+import timeit
+import sys
+sys.setrecursionlimit(1000000)  # or a higher value
+import random – This imports the random module, which is used to select a random pivot in the randomized_partition function.
+import timeit – The timeit module is used to measure the execution time of code snippets, which is useful for comparing the performance of deterministic and randomized quicksort.
+import sys – The sys module provides access to system-specific parameters and functions.
+sys.setrecursionlimit(1000000) – Sets a high recursion limit to allow Quick Sort to work on large arrays without hitting a recursion depth limit in Python. Quick Sort is recursive, and large arrays need deep recursion to fully sort.
+Deterministic Partition Function
+python
+Copy code
+def deterministic_partition(arr, low, high):
+    pivot = arr[high]
+    i = low - 1
+def deterministic_partition(arr, low, high): – Defines the function that performs a deterministic partition by always selecting the last element as the pivot.
+pivot = arr[high] – Sets the pivot as the last element of the array (at index high).
+i = low - 1 – Initializes i to one position before the low index. i will track where the smaller elements (relative to the pivot) should go.
+python
+Copy code
+    for j in range(low, high):
+        if arr[j] < pivot:
+            i += 1
+            arr[i], arr[j] = arr[j], arr[i]
+for j in range(low, high): – Loops through the array from low to high - 1.
+if arr[j] < pivot: – Checks if the current element is smaller than the pivot.
+i += 1 – Increments i to make space for a smaller element.
+arr[i], arr[j] = arr[j], arr[i] – Swaps the current element (arr[j]) with the element at index i, moving the smaller element to the left side of the array.
+python
+Copy code
+    arr[i + 1], arr[high] = arr[high], arr[i + 1]
+    return i + 1
+arr[i + 1], arr[high] = arr[high], arr[i + 1] – Places the pivot in its correct position by swapping it with the element at i + 1.
+return i + 1 – Returns the index of the pivot's final position, which is used to divide the array for recursive sorting.
+Randomized Partition Function
+python
+Copy code
+def randomized_partition(arr, low, high):
+    pivot_index = random.randint(low, high)
+    arr[pivot_index], arr[high] = arr[high], arr[pivot_index]
+    return deterministic_partition(arr, low, high)
+def randomized_partition(arr, low, high): – Defines a partition function that randomizes the pivot selection.
+pivot_index = random.randint(low, high) – Selects a random index between low and high as the pivot index.
+arr[pivot_index], arr[high] = arr[high], arr[pivot_index] – Swaps the randomly chosen pivot element with the last element.
+return deterministic_partition(arr, low, high) – Calls deterministic_partition to complete the partitioning around this random pivot.
+Quick Sort Function
+python
+Copy code
+def quick_sort(arr, low, high, pivot_selector):
+    if low < high:
+        pivot_index = pivot_selector(arr, low, high)
+        quick_sort(arr, low, pivot_index - 1, pivot_selector)
+        quick_sort(arr, pivot_index + 1, high, pivot_selector)
+def quick_sort(arr, low, high, pivot_selector): – Defines the Quick Sort function, which takes an array, bounds (low and high), and a pivot selection function (pivot_selector).
+if low < high: – Checks if there are more than one elements to sort.
+pivot_index = pivot_selector(arr, low, high) – Calls the chosen partition function to get the pivot index.
+quick_sort(arr, low, pivot_index - 1, pivot_selector) – Recursively sorts the left part of the array.
+quick_sort(arr, pivot_index + 1, high, pivot_selector) – Recursively sorts the right part of the array.
+Main Program Logic
+python
+Copy code
+if __name__ == "__main__":
+    arr_sizes = [100, 1000, 5000]
+    for size in arr_sizes:
+        arr = [random.randint(1, 1000) for _ in range(size)]
+        arr.sort(reverse=True)
+if __name__ == "__main__": – Ensures that this code runs only when executed as a script.
+arr_sizes = [100, 1000, 5000] – Sets different array sizes for performance testing.
+for size in arr_sizes: – Loops through each array size to perform the test.
+arr = [random.randint(1, 1000) for _ in range(size)] – Generates an array of random integers from 1 to 1000 of the given size.
+arr.sort(reverse=True) – Sorts the array in descending order to create a scenario that Quick Sort may need more time to handle (a “worst-case” setup).
+python
+Copy code
+        deterministic_time = timeit.timeit("quick_sort(arr.copy(), 0, len(arr) - 1, deterministic_partition)", globals=globals(),number=10)
+        
+        randomized_time = timeit.timeit("quick_sort(arr.copy(), 0, len(arr) - 1, randomized_partition)", globals=globals(), number=10)
+deterministic_time = timeit.timeit(...) – Times the deterministic Quick Sort function for this array size over 10 runs.
+randomized_time = timeit.timeit(...) – Times the randomized Quick Sort function for this array size over 10 runs.
+python
+Copy code
+        print(f"Array size: {size}")
+        print(f"Deterministic Quick Sort time: {deterministic_time:.6f} seconds")
+        print(f"Randomized Quick Sort time: {randomized_time:.6f} seconds")
+        print("-" * 40)
+print(f"Array size: {size}") – Prints the size of the array.
+print(f"Deterministic Quick Sort time: {deterministic_time:.6f} seconds") – Prints the time taken by deterministic Quick Sort.
+print(f"Randomized Quick Sort time: {randomized_time:.6f} seconds") – Prints the time taken by randomized Quick Sort.
+print("-" * 40) – Prints a separator line for readability.

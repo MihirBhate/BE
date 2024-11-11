@@ -1,0 +1,283 @@
+Here’s a detailed explanation of each code block as it relates to the given task:
+
+### 1. Import Libraries
+
+```python
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pylab
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.ensemble import RandomForestRegressor
+from sklearn import preprocessing
+```
+
+- **Purpose**: Import necessary libraries for data manipulation, visualization, and machine learning.
+  - `pandas`, `numpy`: For data handling and numerical operations.
+  - `seaborn`, `matplotlib.pyplot`: For data visualization.
+  - `pylab`: Additional plotting functionalities.
+  - `sklearn`: For machine learning models and evaluation.
+
+### 2. Load Dataset
+
+```python
+df = pd.read_csv('uber.csv')
+```
+
+- **Purpose**: Load the Uber dataset from a CSV file into a DataFrame named `df`.
+
+### 3. Initial Dataset Overview
+
+```python
+df.info()
+```
+
+- **Purpose**: Display an overview of the data, including column names, data types, and non-null values. Helps identify columns with missing data.
+
+### 4. Drop Unnecessary Columns
+
+```python
+df = df.drop(['Unnamed: 0', 'key'], axis=1)
+```
+
+- **Purpose**: Drop irrelevant columns to simplify the dataset for analysis and modeling.
+
+### 5. Handle Missing Values
+
+```python
+df.dropna(axis=0, inplace=True)
+```
+
+- **Purpose**: Remove rows with missing values to ensure a clean dataset.
+
+### 6 & 7. Data Types and Null Value Check
+
+```python
+df.dtypes
+df.isna().sum()
+```
+
+- **Purpose**: Verify the data types of each column and confirm that no missing values remain.
+
+### 8. Convert Date Column to Datetime
+
+```python
+df.pickup_datetime = pd.to_datetime(df.pickup_datetime, errors='coerce')
+```
+
+- **Purpose**: Convert the `pickup_datetime` column to a datetime object to extract time-based features.
+
+### 9. Extract Date Features
+
+```python
+df= df.assign(
+    second = df.pickup_datetime.dt.second,
+    minute = df.pickup_datetime.dt.minute,
+    hour = df.pickup_datetime.dt.hour,
+    day = df.pickup_datetime.dt.day,
+    month = df.pickup_datetime.dt.month,
+    year = df.pickup_datetime.dt.year,
+    dayofweek = df.pickup_datetime.dt.dayofweek
+)
+df = df.drop('pickup_datetime', axis=1)
+```
+
+- **Purpose**: Create new columns for time-based features from `pickup_datetime` to enhance the dataset. Drop the original `pickup_datetime` column afterward.
+
+### 10. Check Dataset Information
+
+```python
+df.info()
+```
+
+- **Purpose**: Verify the dataset structure after feature extraction.
+
+### 11. View Dataset
+
+```python
+df.head()
+```
+
+- **Purpose**: Display the first few rows of the dataset.
+
+### 12. Remove Incorrect Coordinates
+
+```python
+incorrect_coordinates = df.loc[
+    (df.pickup_latitude > 90) | (df.pickup_latitude < -90) |
+    (df.dropoff_latitude > 90) | (df.dropoff_latitude < -90) |
+    (df.pickup_longitude > 180) | (df.pickup_longitude < -180) |
+    (df.dropoff_longitude > 90) | (df.dropoff_longitude < -90)
+]
+df.drop(incorrect_coordinates.index, inplace=True, errors='ignore')
+```
+
+- **Purpose**: Identify and drop rows with invalid latitude/longitude values to clean the dataset.
+
+### 13. Check Dataset Dimensions
+
+```python
+df.shape
+```
+
+- **Purpose**: Verify the number of rows and columns after data cleaning.
+
+### 14. Define Distance Calculation Function
+
+```python
+def distance_transform(longitude1, latitude1, longitude2, latitude2):
+    long1, lati1, long2, lati2 = map(np.radians, [longitude1, latitude1, longitude2, latitude2])
+    dist_long = long2 - long1
+    dist_lati = lati2 - lati1
+    a = np.sin(dist_lati/2)**2 + np.cos(lati1) * np.cos(lati2) * np.sin(dist_long/2)**2
+    c = 2 * np.arcsin(np.sqrt(a)) * 6371
+    return c
+```
+
+- **Purpose**: Create a function that calculates the distance between pickup and drop-off points based on latitude and longitude using the Haversine formula.
+
+### 15. Calculate Distance Column
+
+```python
+df['Distance'] = distance_transform(
+    df['pickup_longitude'],
+    df['pickup_latitude'],
+    df['dropoff_longitude'],
+    df['dropoff_latitude']
+)
+```
+
+- **Purpose**: Apply the distance calculation function to each row in the dataset to add a `Distance` column.
+
+### 16. View Dataset
+
+```python
+df.head()
+```
+
+- **Purpose**: Display the dataset with the newly calculated `Distance` column.
+
+### 17 & 18. Visualize Relationship and Identify Outliers
+
+```python
+plt.scatter(df['Distance'], df['fare_amount'])
+plt.xlabel("Distance")
+plt.ylabel("fare_amount")
+
+plt.figure(figsize=(20,12))
+sns.boxplot(data = df)
+```
+
+- **Purpose**: Plot `Distance` vs. `fare_amount` and create a boxplot to visually identify outliers in the data.
+
+### 19. Remove Outliers
+
+```python
+df.drop(df[df['Distance'] >= 60].index, inplace=True)
+df.drop(df[df['fare_amount'] <= 0].index, inplace=True)
+df.drop(df[(df['fare_amount']>100) & (df['Distance']<1)].index, inplace=True)
+df.drop(df[(df['fare_amount']<100) & (df['Distance']>100)].index, inplace=True)
+```
+
+- **Purpose**: Remove rows with unrealistic values based on `Distance` and `fare_amount`.
+
+### 20. Plot Cleaned Data
+
+```python
+plt.scatter(df['Distance'], df['fare_amount'])
+plt.xlabel("Distance")
+plt.ylabel("fare_amount")
+```
+
+- **Purpose**: Re-plot the cleaned data for a clearer view of the relationship between distance and fare.
+
+### 21. Check Correlations
+
+```python
+corr = df.corr()
+corr.style.background_gradient(cmap='BuGn')
+```
+
+- **Purpose**: Compute and visualize the correlation between features to understand relationships in the data.
+
+### 22-24. Prepare Data for Modeling
+
+```python
+X = df['Distance'].values.reshape(-1, 1)  # Independent Variable
+y = df['fare_amount'].values.reshape(-1, 1)  # Dependent Variable
+
+from sklearn.preprocessing import StandardScaler
+std = StandardScaler()
+y_std = std.fit_transform(y)
+x_std = std.fit_transform(X)
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(x_std, y_std, test_size=0.2, random_state=0)
+```
+
+- **Purpose**: 
+  - Define `Distance` as the independent variable (`X`) and `fare_amount` as the dependent variable (`y`).
+  - Scale features with `StandardScaler`.
+  - Split data into training and testing sets.
+
+### 25-27. Implement Linear Regression and Evaluate
+
+```python
+from sklearn.linear_model import LinearRegression
+l_reg = LinearRegression()
+l_reg.fit(X_train, y_train)
+
+y_pred = l_reg.predict(X_test)
+result = pd.DataFrame()
+result[['Actual']] = y_test
+result[['Predicted']] = y_pred
+
+# Calculate evaluation metrics
+print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
+print('Mean Absolute % Error:', metrics.mean_absolute_percentage_error(y_test, y_pred))
+print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
+print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+print('R Squared (R²):', np.sqrt(metrics.r2_score(y_test, y_pred)))
+```
+
+- **Purpose**: 
+  - Train a linear regression model, make predictions, and calculate evaluation metrics such as MAE, MSE, RMSE, and R².
+
+### 28. Plot Model Results
+
+```python
+plt.subplot(2, 2, 1)
+plt.scatter(X_train, y_train, color='red')
+plt.plot(X_train, l_reg.predict(X_train), color="blue")
+plt.title("Fare vs Distance (Training Set)")
+
+plt.subplot(2, 2, 2)
+plt.scatter(X_test, y_test, color='red')
+plt.plot(X_train, l_reg.predict(X_train), color="blue")
+plt.title("Fare vs Distance (Test Set)")
+
+plt.tight_layout()
+plt.show()
+```
+
+- **Purpose**: Plot training and test data along with predictions to visually analyze model performance.
+
+### 29. Summarize Linear Regression Metrics
+
+```python
+cols = ['Model', 'RMSE', 'R-Squared']
+result_tabulation = pd.DataFrame(columns=cols)
+
+linreg_metrics = pd.DataFrame([[
+    "Linear Regression Model",
+    np.sqrt(metrics.mean_squared_error(y_test, y_pred)),
+    np.sqrt(metrics.r2_score(y_test, y_pred))
+]], columns=cols)
+
+result_tabulation = pd.concat([result_tabulation, linreg_metrics], ignore_index=True)
+result_tabulation
+```
+
+- **Purpose**: Summarize linear regression metrics in a DataFrame for
